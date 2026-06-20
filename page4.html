@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Цветы на свидании</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .flowers {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            max-width: 400px;
+        }
+        .flower-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .flower-option {
+            padding: 15px;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .flower-option:hover {
+            background: #e9ecef;
+        }
+        .flower-option.selected {
+            border-color: #6a11cb;
+            background: #d0bfff;
+        }
+        #otherFlowerInput {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            display: none;
+        }
+        button {
+            background: #6a11cb;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1.1em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Как насчёт букета цветов при встрече?</h1>
+    <div class="flowers">
+        <div class="flower-options">
+            <div class="flower-option" data-flowers="Да, буду рада букету!">Да, буду рада букету!</div>
+            <div class="flower-option" data-flowers="Нет, спасибо, без цветов">Нет, спасибо, без цветов</div>
+            <div class="flower-option" data-flowers="Любые цветы, кроме">Любые цветы, кроме</div>
+            <input type="text" id="otherFlowerInput" placeholder="Напишите, каких цветов не должно быть в букете">
+        </div>
+        <button id="submitBtn">Отправить и завершить</button>
+    </div>
+
+    <script>
+        const otherFlowerInput = document.getElementById('otherFlowerInput');
+        let selectedFlowers = ''; // Храним текущий выбор
+
+        // Выбор варианта цветов
+        document.querySelectorAll('.flower-option').forEach(option => {
+            option.addEventListener('click', function() {
+                // Убираем выделение у всех вариантов
+                document.querySelectorAll('.flower-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                // Выделяем выбранный
+                this.classList.add('selected');
+
+                const flowersValue = this.getAttribute('data-flowers');
+
+                // Показываем/скрываем поле ввода в зависимости от выбора
+                if (flowersValue === 'Любые цветы, кроме') {
+                    otherFlowerInput.style.display = 'block';
+            otherFlowerInput.focus();
+            // Сохраняем базовый текст, пока нет ввода
+            selectedFlowers = flowersValue;
+            localStorage.setItem('flowers', selectedFlowers);
+                } else {
+            otherFlowerInput.style.display = 'none';
+            selectedFlowers = flowersValue;
+            localStorage.setItem('flowers', selectedFlowers);
+                }
+            });
+        });
+
+        // Обработка ввода нежелательного цветка
+        otherFlowerInput.addEventListener('input', function() {
+            const baseText = 'Любые цветы, кроме ';
+            const excludedFlower = this.value.trim();
+
+            if (excludedFlower) {
+                selectedFlowers = baseText + excludedFlower;
+            } else {
+                selectedFlowers = 'Любые цветы, кроме (не указано)';
+            }
+
+            localStorage.setItem('flowers', selectedFlowers);
+        });
+
+        // Отправка SMS
+        async function sendSMS(data) {
+            try {
+                const apiKey = 'A9A8579A-05A9-8FDB-B711-C71BE9F7DB7C'; // Замените на ваш API-ключ SMS.ru
+                const phoneNumber = '89242289899'; // Ваш номер телефона для получения уведомлений
+
+                let message = `💑 Приглашение на свидание!\n\n`;
+                message += `✅ Согласилась: ${data.accepted || 'Не указано'}\n`;
+                message += `🎯 Активность: ${data.activity || 'Не выбрано'}\n`;
+                message += `📅 Дата: ${data.date || 'Не выбрана'}\n`;
+                message += `⏰ Время: ${data.time || 'Не выбрано'}\n`;
+                message += `💐 Цветы: ${data.flowers || 'Не указано'}`;
+
+
+                const url = `https://sms.ru/sms/send?api_id=${apiKey}&to=${phoneNumber}&text=${encodeURIComponent(message)}`;
+
+                console.log('Отправляю SMS:', { url });
+
+                const response = await fetch(url);
+                const result = await response.text();
+
+
+                console.log('Ответ SMS.ru:', result);
+
+                const lines = result.split('\n');
+                if (lines[0] === '100') {
+            alert('Данные успешно отправлены! Я получу уведомление.');
+                } else {
+            throw new Error(`Ошибка SMS.ru: код ${lines[0]}`);
+                }
+            } catch (error) {
+                console.error('Ошибка отправки SMS:', error);
+                alert(`Не удалось отправить данные. Ошибка: ${error.message}`);
+            }
+        }
+
+        // Обработчик кнопки отправки
+        document.getElementById('submitBtn').addEventListener('click', function() {
+            const allData = {
+                accepted: localStorage.getItem('dateAccepted'),
+                activity: localStorage.getItem('activity'),
+                date: localStorage.getItem('date'),
+                time: localStorage.getItem('time'),
+                flowers: localStorage.getItem('flowers')
+            };
+
+            // Проверка данных
+            const missing = Object.entries(allData).filter(([key, value]) => !value);
+            if (missing.length > 0) {
+                alert(`Заполните все поля! Не хватает: ${missing.map(([k]) => k).join(', ')}`);
+                return;
+            }
+
+            sendSMS(allData);
+            window.location.href = 'final.html';
+        });
+    </script>
+</body>
+</html>
